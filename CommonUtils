@@ -180,7 +180,6 @@ function CommonUtils.TweenTo()
         local offset = options.Offset or Vector3.new(0, 0, -5)  -- Default offset 5 units back
         local faceTarget = options.FaceTarget or true
         local noFall = options.NoFall or false
-        local oldGravity = workspace.Gravity
 
         -- Validate target
         if not target or not target:IsDescendantOf(workspace) then
@@ -233,7 +232,7 @@ function CommonUtils.TweenTo()
 
         activeTween.Completed:Connect(function()
             if noFall then   
-                workspace.Gravity = oldGravity
+                workspace.Gravity = 196.2
             end
             activeTween:Destroy()
         end)
