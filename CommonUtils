@@ -1,0 +1,126 @@
+-- common_utils.lua
+local CommonUtils = {}
+
+-- Fly functionality
+local speed = 50
+local flyToggled = false
+local c, h, bv, bav, cam
+
+function CommonUtils.Fly()
+    local p = game:GetService("Players").LocalPlayer
+    local buttons = {W = false, S = false, A = false, D = false, Moving = false}
+    
+    local function startFly()
+        if not p.Character or flyToggled then return end
+        c = p.Character
+        h = c.Humanoid
+        h.PlatformStand = true
+        cam = workspace.CurrentCamera
+        bv = Instance.new("BodyVelocity")
+        bav = Instance.new("BodyAngularVelocity")
+        bv.Velocity, bv.MaxForce, bv.P = Vector3.new(0, 0, 0), Vector3.new(10000, 10000, 10000), 1000
+        bav.AngularVelocity, bav.MaxTorque, bav.P = Vector3.new(0, 0, 0), Vector3.new(10000, 10000, 10000), 1000
+        bv.Parent = c.PrimaryPart
+        bav.Parent = c.PrimaryPart
+        flyToggled = true
+    end
+
+    local function endFly()
+        if not flyToggled then return end
+        h.PlatformStand = false
+        bv:Destroy()
+        bav:Destroy()
+        flyToggled = false
+    end
+
+    game:GetService("UserInputService").InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Keyboard then
+            buttons[input.KeyCode.Name] = true
+            buttons.Moving = true
+        end
+    end)
+
+    game:GetService("UserInputService").InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Keyboard then
+            buttons[input.KeyCode.Name] = false
+            buttons.Moving = false
+        end
+    end)
+
+    game:GetService("RunService").Heartbeat:Connect(function(step)
+        if flyToggled and c and c.PrimaryPart then
+            local cf = cam.CFrame
+            if buttons.Moving then
+                local t = Vector3.new()
+                if buttons.W then t += cf.LookVector end
+                if buttons.S then t -= cf.LookVector end
+                if buttons.A then t -= cf.RightVector end
+                if buttons.D then t += cf.RightVector end
+                c:TranslateBy(t * speed * step)
+            end
+        end
+    end)
+
+    return {
+        Activate = startFly,
+        Deactivate = endFly,
+        SetSpeed = function(newSpeed) speed = newSpeed end
+    }
+end
+
+-- Noclip functionality
+function CommonUtils.Noclip()
+    local noclipEnabled = false
+    local connection
+    
+    local function loop()
+        if noclipEnabled then
+            for _, v in pairs(game.Players.LocalPlayer.Character:GetDescendants()) do
+                if v:IsA("BasePart") then
+                    v.CanCollide = false
+                end
+            end
+        end
+    end
+
+    return {
+        Activate = function()
+            noclipEnabled = true
+            connection = game:GetService('RunService').Stepped:Connect(loop)
+        end,
+        Deactivate = function()
+            noclipEnabled = false
+            if connection then connection:Disconnect() end
+        end
+    }
+end
+
+-- Walkspeed functionality
+function CommonUtils.Walkspeed()
+    local enabled = false
+    local walkSpeed = 16
+    local connection
+
+    local function updateSpeed()
+        local UIS = game:GetService("UserInputService")
+        local LV = workspace.CurrentCamera.CFrame.LookVector
+        local HRP = game.Players.LocalPlayer.Character.HumanoidRootPart
+        
+        -- Walkspeed logic here
+        -- (Keep your existing Walkspeed implementation)
+    end
+
+    return {
+        Activate = function()
+            enabled = true
+            connection = game:GetService("RunService").RenderStepped:Connect(updateSpeed)
+        end,
+        Deactivate = function()
+            enabled = false
+            if connection then connection:Disconnect() end
+        end,
+        SetSpeed = function(newSpeed) walkSpeed = newSpeed end
+    }
+end
+
+return CommonUtils
