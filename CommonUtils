@@ -1,6 +1,7 @@
 local UIS = game:GetService("UserInputService")
 local RS = game:GetService("RunService")
 
+
 -- common_utils.lua
 local CommonUtils = {}
 
@@ -60,7 +61,11 @@ function CommonUtils.Fly()
         buttons.Moving = a
     end)
 
-     game:GetService("RunService").Heartbeat:connect(function(step) 
+    local setVec = function (vec)
+        return vec * (speed / vec.Magnitude)
+    end
+
+    game:GetService("RunService").Heartbeat:connect(function(step) 
         if flyToggled and c and c.PrimaryPart then
             local p = c.PrimaryPart.Position
             local cf = cam.CFrame
