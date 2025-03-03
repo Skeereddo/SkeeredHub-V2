@@ -124,12 +124,17 @@ function CommonUtils.Walkspeed()
     local connection
 
     local function updateSpeed()
-        if not enabled then return end
+        if not enabled or not game.Players.LocalPlayer.Character then return end
         local HRP = game.Players.LocalPlayer.Character.HumanoidRootPart
         local C = workspace.CurrentCamera
         local LV = C.CFrame.LookVector
-        local W, A, S, D
+        local RV = C.CFrame.RightVector
 
+        -- Reset movement vectors each frame
+        local moveDirection = Vector3.new(0, 0, 0)
+        
+        -- Check all pressed keys simultaneously
+        local W, A, S, D = false, false, false, false
         for _, v in pairs(UIS:GetKeysPressed()) do
             if v.KeyCode == Enum.KeyCode.W then W = true end
             if v.KeyCode == Enum.KeyCode.A then A = true end
@@ -137,17 +142,19 @@ function CommonUtils.Walkspeed()
             if v.KeyCode == Enum.KeyCode.D then D = true end
         end
 
-        if W then
-            HRP.Velocity = Vector3.new(LV.X * walkSpeed, HRP.Velocity.Y, LV.Z * walkSpeed)
-        elseif S then
-            HRP.Velocity = Vector3.new(-LV.X * walkSpeed, HRP.Velocity.Y, -LV.Z * walkSpeed)
-        elseif A then
-            local LeftLV = (C.CFrame * CFrame.Angles(0, math.rad(90), 0)).LookVector
-            HRP.Velocity = Vector3.new(LeftLV.X * walkSpeed, HRP.Velocity.Y, LeftLV.Z * walkSpeed)
-        elseif D then
-            local RightLV = (C.CFrame * CFrame.Angles(0, math.rad(-90), 0)).LookVector
-            HRP.Velocity = Vector3.new(RightLV.X * walkSpeed, HRP.Velocity.Y, RightLV.Z * walkSpeed)
+        -- Combine movement vectors
+        if W then moveDirection += LV end
+        if S then moveDirection -= LV end
+        if A then moveDirection -= RV end
+        if D then moveDirection += RV end
+
+        -- Normalize and apply speed
+        if moveDirection.Magnitude > 0 then
+            moveDirection = moveDirection.Unit * walkSpeed
         end
+
+        -- Preserve vertical velocity (gravity)
+        HRP.Velocity = Vector3.new(moveDirection.X, HRP.Velocity.Y, moveDirection.Z)
     end
 
     return {
@@ -157,7 +164,14 @@ function CommonUtils.Walkspeed()
         end,
         Deactivate = function()
             enabled = false
-            if connection then connection:Disconnect() end
+            if connection then
+                connection:Disconnect()
+                connection = nil
+            end
+            -- Reset velocity when deactivated
+            if game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character.PrimaryPart then
+                game.Players.LocalPlayer.Character.PrimaryPart.Velocity = Vector3.new(0, 0, 0)
+            end
         end,
         SetSpeed = function(newSpeed) walkSpeed = newSpeed end
     }
