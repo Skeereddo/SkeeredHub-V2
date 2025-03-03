@@ -1,3 +1,6 @@
+local UIS = game:GetService("UserInputService")
+local RS = game:GetService("RunService")
+
 -- common_utils.lua
 local CommonUtils = {}
 
@@ -106,8 +109,6 @@ function CommonUtils.Walkspeed()
 
     local function updateSpeed()
         if not enabled then return end
-        local UIS = game:GetService("UserInputService")
-        local RS = game:GetService("RunService")
         local HRP = game.Players.LocalPlayer.Character.HumanoidRootPart
         local C = workspace.CurrentCamera
         local LV = C.CFrame.LookVector
