@@ -171,7 +171,7 @@ function CommonUtils.TweenTo()
         if activeTween then
             activeTween:Destroy()
             activeTween = nil
-            workspace.Gravity = oldGravity
+            workspace.Gravity = 196.2
         end
     end
 
