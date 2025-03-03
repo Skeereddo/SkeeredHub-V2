@@ -1,6 +1,6 @@
 local UIS = game:GetService("UserInputService")
 local RS = game:GetService("RunService")
-
+local TweenService = game:GetService("TweenService")
 
 -- common_utils.lua
 local CommonUtils = {}
@@ -160,6 +160,79 @@ function CommonUtils.Walkspeed()
             if connection then connection:Disconnect() end
         end,
         SetSpeed = function(newSpeed) walkSpeed = newSpeed end
+    }
+end
+
+-- TweenTo functionality
+function CommonUtils.TweenTo()
+    local activeTween = nil
+    
+    local function CancelTween()
+        if activeTween then
+            activeTween:Cancel()
+            activeTween = nil
+        end
+    end
+
+    local function TweenTo(target, speed, options)
+        options = options or {}
+        local offset = options.Offset or Vector3.new(0, 0, -5)  -- Default offset 5 units back
+        local faceTarget = options.FaceTarget or true
+
+        -- Validate target
+        if not target or not target:IsDescendantOf(workspace) then
+            return false, "Invalid target"
+        end
+
+        -- Get target position
+        local targetPosition
+        if target:IsA("Model") then
+            targetPosition = target.PrimaryPart and target.PrimaryPart.Position or target:GetBoundingBox().Position
+        else
+            targetPosition = target.Position
+        end
+
+        -- Get character parts
+        local character = game.Players.LocalPlayer.Character
+        if not character or not character.PrimaryPart then
+            return false, "Character not found"
+        end
+        local hrp = character.PrimaryPart
+
+        -- Calculate destination
+        local destination = targetPosition + offset
+        local distance = (hrp.Position - destination).Magnitude
+        local duration = distance / speed
+
+        -- Create tween
+        local tweenInfo = TweenInfo.new(
+            duration,
+            Enum.EasingStyle.Linear,
+            Enum.EasingDirection.Out,
+            0,
+            false,
+            0
+        )
+
+        -- Cancel any existing tween
+        CancelTween()
+
+        -- Create and play tween
+        activeTween = TweenService:Create(hrp, tweenInfo, {
+            CFrame = faceTarget and CFrame.lookAt(destination, targetPosition) or CFrame.new(destination)
+        })
+        
+        activeTween:Play()
+        
+        return {
+            Cancel = CancelTween,
+            Completed = activeTween.Completed
+        }
+    end
+
+    return {
+        TweenTo = TweenTo,
+        CancelTween = CancelTween
     }
 end
 
