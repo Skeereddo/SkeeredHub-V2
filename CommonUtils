@@ -13,7 +13,7 @@ function CommonUtils.Fly()
     local buttons = {W = false, S = false, A = false, D = false, Moving = false}
 
     local function startFly()
-        if not p.Character or flyToggled then return end
+        if not p.Character or not p.Character.Head or flyToggled then return end
         c = p.Character
         h = c.Humanoid
         h.PlatformStand = true
@@ -22,34 +22,45 @@ function CommonUtils.Fly()
         bav = Instance.new("BodyAngularVelocity")
         bv.Velocity, bv.MaxForce, bv.P = Vector3.new(0, 0, 0), Vector3.new(10000, 10000, 10000), 1000
         bav.AngularVelocity, bav.MaxTorque, bav.P = Vector3.new(0, 0, 0), Vector3.new(10000, 10000, 10000), 1000
-        bv.Parent = c.PrimaryPart
-        bav.Parent = c.PrimaryPart
+        bv.Parent = c.Head
+        bav.Parent = c.Head
         flyToggled = true
+        h.Died:connect(function() flying = false end)
     end
 
     local function endFly()
-        if not flyToggled then return end
+        if not p.Character or not flyToggled then return end
         h.PlatformStand = false
         bv:Destroy()
         bav:Destroy()
         flyToggled = false
     end
 
-    game:GetService("UserInputService").InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Keyboard then
-            buttons[input.KeyCode.Name] = true
-            buttons.Moving = true
+    game:GetService("UserInputService").InputBegan:Connect(function(input, GPE)
+        if GPE then return end
+        for i, e in pairs(buttons) do
+            if i ~= "Moving" and input.KeyCode == Enum.KeyCode[i] then
+                buttons[i] = true
+                buttons.Moving = true
+            end
         end
     end)
 
-    game:GetService("UserInputService").InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Keyboard then
-            buttons[input.KeyCode.Name] = false
-            buttons.Moving = false
+    game:GetService("UserInputService").InputEnded:Connect(function(input, GPE)
+        if GPE then return end
+        local a = false
+        for i, e in pairs(buttons) do
+            if i ~= "Moving" then
+                if input.KeyCode == Enum.KeyCode[i] then
+                    buttons[i] = false
+                end
+                if buttons[i] then a = true end
+            end
         end
+        buttons.Moving = a
     end)
 
-     game:GetService("RunService").Heartbeat:connect(function (step) 
+     game:GetService("RunService").Heartbeat:connect(function(step) 
         if flyToggled and c and c.PrimaryPart then
             local p = c.PrimaryPart.Position
             local cf = cam.CFrame
