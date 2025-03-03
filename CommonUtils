@@ -178,6 +178,7 @@ function CommonUtils.TweenTo()
         options = options or {}
         local offset = options.Offset or Vector3.new(0, 0, -5)  -- Default offset 5 units back
         local faceTarget = options.FaceTarget or true
+        local anchorCharacter = options.AnchorCharacter or false
 
         -- Validate target
         if not target or not target:IsDescendantOf(workspace) then
@@ -204,6 +205,10 @@ function CommonUtils.TweenTo()
         local distance = (hrp.Position - destination).Magnitude
         local duration = distance / speed
 
+        if anchorCharacter then
+            hrp.Anchored = true
+        end
+
         -- Create tween
         local tweenInfo = TweenInfo.new(
             duration,
@@ -223,10 +228,18 @@ function CommonUtils.TweenTo()
         })
         
         activeTween:Play()
+
+        activeTween.Completed:Connect(function()
+            if anchorCharacter then
+                hrp.Anchored = false  
+            end
+            activeTween:Destroy()
+        end)
         
         return {
             Cancel = CancelTween,
-            Completed = activeTween.Completed
+            Completed = activeTween.Completed,
+            Duration = duration,
         }
     end
 
