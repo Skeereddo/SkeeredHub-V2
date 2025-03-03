@@ -2,14 +2,13 @@
 local CommonUtils = {}
 
 -- Fly functionality
-local speed = 50
-local flyToggled = false
-local c, h, bv, bav, cam
-
 function CommonUtils.Fly()
+    local speed = 50
+    local flyToggled = false
+    local c, h, bv, bav, cam
     local p = game:GetService("Players").LocalPlayer
     local buttons = {W = false, S = false, A = false, D = false, Moving = false}
-    
+
     local function startFly()
         if not p.Character or flyToggled then return end
         c = p.Character
@@ -72,7 +71,7 @@ end
 function CommonUtils.Noclip()
     local noclipEnabled = false
     local connection
-    
+
     local function loop()
         if noclipEnabled then
             for _, v in pairs(game.Players.LocalPlayer.Character:GetDescendants()) do
@@ -86,7 +85,7 @@ function CommonUtils.Noclip()
     return {
         Activate = function()
             noclipEnabled = true
-            connection = game:GetService('RunService').Stepped:Connect(loop)
+            connection = game:GetService("RunService").Stepped:Connect(loop)
         end,
         Deactivate = function()
             noclipEnabled = false
@@ -102,18 +101,38 @@ function CommonUtils.Walkspeed()
     local connection
 
     local function updateSpeed()
+        if not enabled then return end
         local UIS = game:GetService("UserInputService")
-        local LV = workspace.CurrentCamera.CFrame.LookVector
+        local RS = game:GetService("RunService")
         local HRP = game.Players.LocalPlayer.Character.HumanoidRootPart
-        
-        -- Walkspeed logic here
-        -- (Keep your existing Walkspeed implementation)
+        local C = workspace.CurrentCamera
+        local LV = C.CFrame.LookVector
+        local W, A, S, D
+
+        for _, v in pairs(UIS:GetKeysPressed()) do
+            if v.KeyCode == Enum.KeyCode.W then W = true end
+            if v.KeyCode == Enum.KeyCode.A then A = true end
+            if v.KeyCode == Enum.KeyCode.S then S = true end
+            if v.KeyCode == Enum.KeyCode.D then D = true end
+        end
+
+        if W then
+            HRP.Velocity = Vector3.new(LV.X * walkSpeed, HRP.Velocity.Y, LV.Z * walkSpeed)
+        elseif S then
+            HRP.Velocity = Vector3.new(-LV.X * walkSpeed, HRP.Velocity.Y, -LV.Z * walkSpeed)
+        elseif A then
+            local LeftLV = (C.CFrame * CFrame.Angles(0, math.rad(90), 0)).LookVector
+            HRP.Velocity = Vector3.new(LeftLV.X * walkSpeed, HRP.Velocity.Y, LeftLV.Z * walkSpeed)
+        elseif D then
+            local RightLV = (C.CFrame * CFrame.Angles(0, math.rad(-90), 0)).LookVector
+            HRP.Velocity = Vector3.new(RightLV.X * walkSpeed, HRP.Velocity.Y, RightLV.Z * walkSpeed)
+        end
     end
 
     return {
         Activate = function()
             enabled = true
-            connection = game:GetService("RunService").RenderStepped:Connect(updateSpeed)
+            connection = RS.RenderStepped:Connect(updateSpeed)
         end,
         Deactivate = function()
             enabled = false
