@@ -169,8 +169,9 @@ function CommonUtils.TweenTo()
     
     local function CancelTween()
         if activeTween then
-            activeTween:Cancel()
+            activeTween:Destroy()
             activeTween = nil
+            workspace.Gravity = oldGravity
         end
     end
 
@@ -178,7 +179,8 @@ function CommonUtils.TweenTo()
         options = options or {}
         local offset = options.Offset or Vector3.new(0, 0, -5)  -- Default offset 5 units back
         local faceTarget = options.FaceTarget or true
-        local anchorCharacter = options.AnchorCharacter or false
+        local noFall = options.NoFall or false
+        local oldGravity = workspace.Gravity
 
         -- Validate target
         if not target or not target:IsDescendantOf(workspace) then
@@ -205,8 +207,8 @@ function CommonUtils.TweenTo()
         local distance = (hrp.Position - destination).Magnitude
         local duration = distance / speed
 
-        if anchorCharacter then
-            hrp.Anchored = true
+        if noFall then
+              workspace.Gravity = 0
         end
 
         -- Create tween
@@ -230,8 +232,8 @@ function CommonUtils.TweenTo()
         activeTween:Play()
 
         activeTween.Completed:Connect(function()
-            if anchorCharacter then
-                hrp.Anchored = false  
+            if noFall then   
+                workspace.Gravity = oldGravity
             end
             activeTween:Destroy()
         end)
