@@ -46,16 +46,19 @@ function CommonUtils.Fly()
         end
     end)
 
-    game:GetService("RunService").Heartbeat:Connect(function(step)
+     game:GetService("RunService").Heartbeat:connect(function (step) 
         if flyToggled and c and c.PrimaryPart then
+            local p = c.PrimaryPart.Position
             local cf = cam.CFrame
+            local ax, ay, az = cf:toEulerAnglesXYZ()
+            c:SetPrimaryPartCFrame(CFrame.new(p.x, p.y, p.z) * CFrame.Angles(ax, ay, az))
             if buttons.Moving then
                 local t = Vector3.new()
-                if buttons.W then t += cf.LookVector end
-                if buttons.S then t -= cf.LookVector end
-                if buttons.A then t -= cf.RightVector end
-                if buttons.D then t += cf.RightVector end
-                c:TranslateBy(t * speed * step)
+                if buttons.W then t = t + (setVec(cf.lookVector)) end
+                if buttons.S then t = t - (setVec(cf.lookVector)) end
+                if buttons.A then t = t - (setVec(cf.rightVector)) end
+                if buttons.D then t = t + (setVec(cf.rightVector)) end
+                c:TranslateBy(t * step)
             end
         end
     end)
@@ -74,7 +77,7 @@ function CommonUtils.Noclip()
 
     local function loop()
         if noclipEnabled then
-            for _, v in pairs(game.Players.LocalPlayer.Character:GetDescendants()) do
+            for _, v in pairs(game:GetService("Players").LocalPlayer.Character:GetDescendants()) do
                 if v:IsA("BasePart") then
                     v.CanCollide = false
                 end
@@ -90,6 +93,7 @@ function CommonUtils.Noclip()
         Deactivate = function()
             noclipEnabled = false
             if connection then connection:Disconnect() end
+            game:GetService("Players").LocalPlayer.Character.Humanoid:ChangeState(7)
         end
     }
 end
