@@ -1,6 +1,7 @@
 local UIS = game:GetService("UserInputService")
 local RS = game:GetService("RunService")
-
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
 
 -- common_utils.lua
 local CommonUtils = {}
@@ -10,7 +11,7 @@ function CommonUtils.Fly()
     local speed = 50
     local flyToggled = false
     local c, h, bv, bav, cam
-    local p = game:GetService("Players").LocalPlayer
+    local p = Players.LocalPlayer
     local buttons = {W = false, S = false, A = false, D = false, Moving = false}
 
     local function startFly()
@@ -20,6 +21,7 @@ function CommonUtils.Fly()
         h.PlatformStand = true
         cam = workspace.CurrentCamera
         bv = Instance.new("BodyVelocity")
+        bv:AddTag("Whitelisted")
         bav = Instance.new("BodyAngularVelocity")
         bv.Velocity, bv.MaxForce, bv.P = Vector3.new(0, 0, 0), Vector3.new(10000, 10000, 10000), 1000
         bav.AngularVelocity, bav.MaxTorque, bav.P = Vector3.new(0, 0, 0), Vector3.new(10000, 10000, 10000), 1000
@@ -124,12 +126,17 @@ function CommonUtils.Walkspeed()
     local connection
 
     local function updateSpeed()
-        if not enabled then return end
-        local HRP = game.Players.LocalPlayer.Character.HumanoidRootPart
+        if not enabled or not Players.LocalPlayer.Character then return end
+        local HRP = Players.LocalPlayer.Character.HumanoidRootPart
         local C = workspace.CurrentCamera
         local LV = C.CFrame.LookVector
-        local W, A, S, D
+        local RV = C.CFrame.RightVector
 
+        -- Reset movement vectors each frame
+        local moveDirection = Vector3.new(0, 0, 0)
+        
+        -- Check all pressed keys simultaneously
+        local W, A, S, D = false, false, false, false
         for _, v in pairs(UIS:GetKeysPressed()) do
             if v.KeyCode == Enum.KeyCode.W then W = true end
             if v.KeyCode == Enum.KeyCode.A then A = true end
@@ -137,17 +144,19 @@ function CommonUtils.Walkspeed()
             if v.KeyCode == Enum.KeyCode.D then D = true end
         end
 
-        if W then
-            HRP.Velocity = Vector3.new(LV.X * walkSpeed, HRP.Velocity.Y, LV.Z * walkSpeed)
-        elseif S then
-            HRP.Velocity = Vector3.new(-LV.X * walkSpeed, HRP.Velocity.Y, -LV.Z * walkSpeed)
-        elseif A then
-            local LeftLV = (C.CFrame * CFrame.Angles(0, math.rad(90), 0)).LookVector
-            HRP.Velocity = Vector3.new(LeftLV.X * walkSpeed, HRP.Velocity.Y, LeftLV.Z * walkSpeed)
-        elseif D then
-            local RightLV = (C.CFrame * CFrame.Angles(0, math.rad(-90), 0)).LookVector
-            HRP.Velocity = Vector3.new(RightLV.X * walkSpeed, HRP.Velocity.Y, RightLV.Z * walkSpeed)
+        -- Combine movement vectors
+        if W then moveDirection += LV end
+        if S then moveDirection -= LV end
+        if A then moveDirection -= RV end
+        if D then moveDirection += RV end
+
+        -- Normalize and apply speed
+        if moveDirection.Magnitude > 0 then
+            moveDirection = moveDirection.Unit * walkSpeed
         end
+
+        -- Preserve vertical velocity (gravity)
+        HRP.Velocity = Vector3.new(moveDirection.X, HRP.Velocity.Y, moveDirection.Z)
     end
 
     return {
@@ -157,9 +166,104 @@ function CommonUtils.Walkspeed()
         end,
         Deactivate = function()
             enabled = false
-            if connection then connection:Disconnect() end
+            if connection then
+                connection:Disconnect()
+                connection = nil
+            end
+            -- Reset velocity when deactivated
+            if Players.LocalPlayer.Character and Players.LocalPlayer.Character.PrimaryPart then
+                Players.LocalPlayer.Character.PrimaryPart.Velocity = Vector3.new(0, 0, 0)
+            end
         end,
         SetSpeed = function(newSpeed) walkSpeed = newSpeed end
+    }
+end
+
+-- TweenTo functionality
+function CommonUtils.TweenTo()
+    local activeTween = nil
+    
+    local function CancelTween()
+        if activeTween then
+            activeTween:Stop()
+            activeTween:Destroy()
+            activeTween = nil
+            workspace.Gravity = 196.2
+        end
+    end
+
+    local function TweenTo(target, speed, options)
+        options = options or {}
+        local offset = options.Offset or Vector3.new(0, 0, -5)  -- Default offset 5 units back
+        local faceTarget = options.FaceTarget or true
+        local noFall = options.NoFall or false
+
+        -- Validate target
+        if not target or not target:IsDescendantOf(workspace) then
+            return false, "Invalid target"
+        end
+
+        -- Get target position
+        local targetPosition
+        if target:IsA("Model") then
+            targetPosition = target.PrimaryPart and target.PrimaryPart.Position or target:GetBoundingBox().Position
+        else
+            targetPosition = target.Position
+        end
+
+        -- Get character parts
+        local character = Players.LocalPlayer.Character
+        if not character or not character.HumanoidRootPart then
+            return false, "Character not found"
+        end
+        local hrp = character.HumanoidRootPart
+
+        -- Calculate destination
+        local destination = targetPosition + offset
+        local distance = (hrp.Position - destination).Magnitude
+        local duration = distance / speed
+
+        if noFall then
+              workspace.Gravity = 0
+        end
+
+        -- Create tween
+        local tweenInfo = TweenInfo.new(
+            duration,
+            Enum.EasingStyle.Linear,
+            Enum.EasingDirection.Out,
+            0,
+            false,
+            0
+        )
+
+        -- Cancel any existing tween
+        CancelTween()
+
+        -- Create and play tween
+        activeTween = TweenService:Create(hrp, tweenInfo, {
+            CFrame = faceTarget and CFrame.lookAt(destination, targetPosition) or CFrame.new(destination)
+        })
+        
+        activeTween:Play()
+
+        activeTween.Completed:Connect(function()
+            if noFall then   
+                workspace.Gravity = 196.2
+            end
+            activeTween:Destroy()
+        end)
+        
+        return {
+            Cancel = CancelTween,
+            Completed = activeTween.Completed,
+            Duration = duration,
+        }
+    end
+
+    return {
+        TweenTo = TweenTo,
+        CancelTween = CancelTween
     }
 end
 
