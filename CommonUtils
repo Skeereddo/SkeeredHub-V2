@@ -1,6 +1,7 @@
 local UIS = game:GetService("UserInputService")
 local RS = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
 
 -- common_utils.lua
 local CommonUtils = {}
@@ -10,7 +11,7 @@ function CommonUtils.Fly()
     local speed = 50
     local flyToggled = false
     local c, h, bv, bav, cam
-    local p = game:GetService("Players").LocalPlayer
+    local p = Players.LocalPlayer
     local buttons = {W = false, S = false, A = false, D = false, Moving = false}
 
     local function startFly()
@@ -125,8 +126,8 @@ function CommonUtils.Walkspeed()
     local connection
 
     local function updateSpeed()
-        if not enabled or not game.Players.LocalPlayer.Character then return end
-        local HRP = game.Players.LocalPlayer.Character.HumanoidRootPart
+        if not enabled or not Players.LocalPlayer.Character then return end
+        local HRP = Players.LocalPlayer.Character.HumanoidRootPart
         local C = workspace.CurrentCamera
         local LV = C.CFrame.LookVector
         local RV = C.CFrame.RightVector
@@ -170,8 +171,8 @@ function CommonUtils.Walkspeed()
                 connection = nil
             end
             -- Reset velocity when deactivated
-            if game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character.PrimaryPart then
-                game.Players.LocalPlayer.Character.PrimaryPart.Velocity = Vector3.new(0, 0, 0)
+            if Players.LocalPlayer.Character and Players.LocalPlayer.Character.PrimaryPart then
+                Players.LocalPlayer.Character.PrimaryPart.Velocity = Vector3.new(0, 0, 0)
             end
         end,
         SetSpeed = function(newSpeed) walkSpeed = newSpeed end
@@ -210,11 +211,11 @@ function CommonUtils.TweenTo()
         end
 
         -- Get character parts
-        local character = game.Players.LocalPlayer.Character
-        if not character or not character.PrimaryPart then
+        local character = Players.LocalPlayer.Character
+        if not character or not character.HumanoidRootPart then
             return false, "Character not found"
         end
-        local hrp = character.PrimaryPart
+        local hrp = character.HumanoidRootPart
 
         -- Calculate destination
         local destination = targetPosition + offset
