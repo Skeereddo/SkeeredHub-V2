@@ -185,7 +185,6 @@ function CommonUtils.TweenTo()
     
     local function CancelTween()
         if activeTween then
-            activeTween:Stop()
             activeTween:Destroy()
             activeTween = nil
             workspace.Gravity = 196.2
